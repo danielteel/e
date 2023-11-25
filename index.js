@@ -1,48 +1,25 @@
-let keyString = "5c97b02ae05b748dcb67230065ddf4b8a831a17826cf44a4f90a91349da78cb3";
-
-const stringToEncrypt = 'a';
 
 const textDecoder = new TextDecoder;
 const textEncoder = new TextEncoder;
+
+
+let keyString = "5c97b02ae05b748dcb67230065ddf4b8a831a17826cf44a4f90a91349da78cb3";
+
+const stringToEncrypt = 'Hello World!';
+
+console.log('\n');
+
+console.log("Unencrypted:", stringToEncrypt);
 const encrypted = encrypt(textEncoder.encode(stringToEncrypt), keyString);
 
-console.log("Encrypted", encrypted.length, Array.from(encrypted).map(v => v.toString(16).padStart(2,'0')).join(' '));
+console.log("Encrypted:", Array.from(encrypted).map(v => v.toString(16).padStart(2,'0')).join(' '));
 
 const decrypted = (new TextDecoder).decode(decrypt(encrypted, keyString));
-console.log(decrypted);
+console.log("Decrypted:", decrypted);
 if (stringToEncrypt!=decrypted){
     console.error("Decrypted doesnt match");
-    throw "Decrypted doesnt match"
 }
-
-const collisionKey = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
-
-while (1){
-
-    // for (let i=0;i<32;i++){
-    //     if (collisionKey[i]<255){
-    //         collisionKey[i]++;
-    //         break;
-    //     }
-    //     console.log(collisionKey.map(v => v.toString(16).padStart(2,'0')).join(''));
-    //     collisionKey[i]=0;
-    // }
-    for (let i=0;i<32;i++){
-        collisionKey[i]=Math.floor(Math.random()*256);
-    }
-    //console.log(collisionKey.map(v => v.toString(16).padStart(2,'0')).join(''));
-
-    if (textDecoder.decode(decrypt(encrypted, collisionKey))===stringToEncrypt){
-        
-        const encrypted = encrypt(textEncoder.encode(stringToEncrypt), keyString);
-        if (textDecoder.decode(decrypt(encrypted, collisionKey))===stringToEncrypt){
-            console.log('found collision', collisionKey.map(v => v.toString(16).padStart(2,'0')).join(''));
-            break;
-        }
-    }
-}
-
-
+console.log('\n');
 
 function leftRotate32(num,  places){
     return ((num << places) | (num >>> (32 - places))) & 0xFFFFFFFF;
