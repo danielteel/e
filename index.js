@@ -1,19 +1,46 @@
 let keyString = "5c97b02ae05b748dcb67230065ddf4b8a831a17826cf44a4f90a91349da78cb3";
 
-const stringToEncrypt = 'Hello'
+const stringToEncrypt = 'a';
 
-const encrypted = encrypt((new TextEncoder()).encode(stringToEncrypt), keyString, 1);
+const textDecoder = new TextDecoder;
+const textEncoder = new TextEncoder;
+const encrypted = encrypt(textEncoder.encode(stringToEncrypt), keyString);
 
 console.log("Encrypted", encrypted.length, Array.from(encrypted).map(v => v.toString(16).padStart(2,'0')).join(' '));
 
-const decrypted = (new TextDecoder).decode(decrypt(encrypted, keyString, 1));
-
+const decrypted = (new TextDecoder).decode(decrypt(encrypted, keyString));
+console.log(decrypted);
 if (stringToEncrypt!=decrypted){
     console.error("Decrypted doesnt match");
     throw "Decrypted doesnt match"
 }
 
+const collisionKey = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
 
+while (1){
+
+    // for (let i=0;i<32;i++){
+    //     if (collisionKey[i]<255){
+    //         collisionKey[i]++;
+    //         break;
+    //     }
+    //     console.log(collisionKey.map(v => v.toString(16).padStart(2,'0')).join(''));
+    //     collisionKey[i]=0;
+    // }
+    for (let i=0;i<32;i++){
+        collisionKey[i]=Math.floor(Math.random()*256);
+    }
+    //console.log(collisionKey.map(v => v.toString(16).padStart(2,'0')).join(''));
+
+    if (textDecoder.decode(decrypt(encrypted, collisionKey))===stringToEncrypt){
+        
+        const encrypted = encrypt(textEncoder.encode(stringToEncrypt), keyString);
+        if (textDecoder.decode(decrypt(encrypted, collisionKey))===stringToEncrypt){
+            console.log('found collision', collisionKey.map(v => v.toString(16).padStart(2,'0')).join(''));
+            break;
+        }
+    }
+}
 
 
 
@@ -49,7 +76,7 @@ function frame(bytes){
     return framed;
 }
 
-function encrypt(data, keyString, rounds=1){
+function encrypt(data, keyString){
     let key=[];
     if (typeof keyString==='string'){
         if (keyString.length!=64){
@@ -65,7 +92,6 @@ function encrypt(data, keyString, rounds=1){
         key=keyString;
     }
 
-    rounds--;
     let buffer = frame(data);
     if (buffer.length>0xFFFF) throw 'data needs to be less than 0xFFF0 in size';
 
@@ -103,11 +129,10 @@ function encrypt(data, keyString, rounds=1){
             buffer[i+7] ^= leftRotate8(key[k], 6 + buffer[i+6]%2);
         }
     }
-    if (rounds) buffer=encrypt(buffer, key, rounds);
     return buffer;
 }
 
-function decrypt(data, keyString, rounds=1){    
+function decrypt(data, keyString){    
     let key=[];
     if (typeof keyString==='string'){
         if (keyString.length!=64){
@@ -123,7 +148,6 @@ function decrypt(data, keyString, rounds=1){
         key=keyString;
     }
 
-    rounds--;
     let buffer = new Uint8Array(data.length);
     buffer.set(data);
 
@@ -159,11 +183,6 @@ function decrypt(data, keyString, rounds=1){
             buffer[i+5] = b4>>16 & 0xFF;
             buffer[i+7] = b4>>24 & 0xFF;
         }
-    }
-
-    if (rounds){
-        const len = buffer[0]<<8|buffer[1];
-        buffer=decrypt(buffer.subarray(buffer.length-len), key, rounds);
     }
 
     const len = buffer[0]<<8|buffer[1];
